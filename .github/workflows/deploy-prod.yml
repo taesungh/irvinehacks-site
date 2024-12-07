@@ -1,40 +1,53 @@
-name: Deploy Production
+name: Production Deployments
 
 on:
-    workflow_run:
-        workflows:
-            - Run Checks
-        types:
-            - completed
-        branches:
-            - main
+  workflow_run:
+    workflows:
+      - Run Checks
+    types:
+      - completed
+    branches:
+      - main
 
 permissions:
-    contents: read
-    pull-requests: write
+  contents: read
 
 jobs:
-    Site:
-        runs-on: ubuntu-latest
-        steps:
-            - uses: actions/checkout@v4
-            - uses: amondnet/vercel-action@v25
-              with:
-                  vercel-version: 32.6.1
-                  github-comment: false
-                  vercel-args: "--prod"
-                  vercel-token: ${{ secrets.VERCEL_TOKEN }}
-                  vercel-org-id: ${{ vars.VERCEL_ORG_ID}}
-                  vercel-project-id: ${{ vars.VERCEL_PROJECT_ID_SITE}}
-    Studio:
-        runs-on: ubuntu-latest
-        steps:
-            - uses: actions/checkout@v4
-            - uses: amondnet/vercel-action@v25
-              with:
-                  vercel-version: 32.6.1
-                  github-comment: false
-                  vercel-args: "--prod"
-                  vercel-token: ${{ secrets.VERCEL_TOKEN }}
-                  vercel-org-id: ${{ vars.VERCEL_ORG_ID}}
-                  vercel-project-id: ${{ vars.VERCEL_PROJECT_ID_STUDIO}}
+  deploy:
+    name: "Deploy to Production"
+    runs-on: ubuntu-latest
+    strategy:
+      # allow other matrix jobs to continue
+      fail-fast: false
+      matrix:
+        app: [site, sanity]
+        include:
+          - app: site
+            label: IrvineHacks Site
+            VERCEL_PROJECT_ID: ${{ vars.VERCEL_PROJECT_ID_SITE }}
+          - app: sanity
+            label: Sanity Studio
+            VERCEL_PROJECT_ID: ${{ vars.VERCEL_PROJECT_ID_STUDIO }}
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Check super-turbo-ignore
+        id: super_turbo_ignore
+        uses: HackAtUCI/super-turbo-ignore@v1
+        with:
+          workspace: ${{matrix.app}}
+          npm-cache-dependency-path: "pnpm-lock.yaml"
+
+      - name: Deploy preview
+        if: steps.super_turbo_ignore.outputs.status == 1
+        uses: amondnet/vercel-action@v25
+        with:
+          vercel-version: 39.1.3
+          vercel-args: "--prod"
+          github-comment: false
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          vercel-token: ${{ secrets.VERCEL_TOKEN }}
+          vercel-org-id: ${{ vars.VERCEL_ORG_ID }}
+          vercel-project-id: ${{ matrix.VERCEL_PROJECT_ID }}
