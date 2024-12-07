@@ -1,9 +1,15 @@
 {
 	"extends": ["//"],
-	"pipeline": {
+	"tasks": {
 		"build": {
-			"inputs": ["requirements.txt"],
-			"outputs": ["lib/**"]
+			"inputs": ["configuration/**", "src/**", "index.py", "requirements.txt"],
+			"outputs": [
+				"configuration/**",
+				"src/**",
+				"index.py",
+				"requirements.txt",
+				"lib/**"
+			]
 		}
 	}
 }
