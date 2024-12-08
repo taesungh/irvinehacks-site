@@ -30,7 +30,7 @@ jobs:
 
       - name: Check super-turbo-ignore
         id: super_turbo_ignore
-        uses: HackAtUCI/super-turbo-ignore@v1
+        uses: taesungh/super-turbo-ignore@d6a335f45d978e964372b88b8059d2d609712083
         with:
           workspace: ${{matrix.app}}
           npm-cache-dependency-path: "pnpm-lock.yaml"
