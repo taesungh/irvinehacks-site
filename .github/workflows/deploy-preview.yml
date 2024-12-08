@@ -1,4 +1,4 @@
-name: Deploy Preview
+name: Preview Deployments
 
 on:
   pull_request:
@@ -8,18 +8,43 @@ permissions:
   pull-requests: write
 
 jobs:
-  Site:
+  deploy:
+    name: "Deploy Preview"
     runs-on: ubuntu-latest
+    strategy:
+      # allow other matrix jobs to continue
+      fail-fast: false
+      matrix:
+        app: [site, sanity]
+        include:
+          - app: site
+            label: IrvineHacks Site
+            VERCEL_PROJECT_ID: ${{ vars.VERCEL_PROJECT_ID_SITE }}
+          - app: sanity
+            label: Sanity Studio
+            VERCEL_PROJECT_ID: ${{ vars.VERCEL_PROJECT_ID_STUDIO }}
+
     steps:
-      - uses: actions/checkout@v4
-      - uses: amondnet/vercel-action@v25
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Check super-turbo-ignore
+        id: super_turbo_ignore
+        uses: taesungh/super-turbo-ignore@d6a335f45d978e964372b88b8059d2d609712083
         with:
-          vercel-version: 32.6.1
+          workspace: ${{matrix.app}}
+          npm-cache-dependency-path: "pnpm-lock.yaml"
+
+      - name: Deploy preview
+        if: steps.super_turbo_ignore.outputs.status == 1
+        uses: amondnet/vercel-action@v25
+        with:
+          vercel-version: 39.1.3
           github-comment: |
             <table>
               <tr>
                 <td><strong>Name</strong></td>
-                <td>IrvineHacks Site</td>
+                <td>${{matrix.label}}</td>
               </tr>
               <tr>
                 <td><strong>Preview</strong></td>
@@ -32,32 +57,5 @@ jobs:
             </table>
           github-token: ${{ secrets.GITHUB_TOKEN }}
           vercel-token: ${{ secrets.VERCEL_TOKEN }}
-          vercel-org-id: ${{ vars.VERCEL_ORG_ID}}
-          vercel-project-id: ${{ vars.VERCEL_PROJECT_ID_SITE}}
-  Studio:
-    runs-on: ubuntu-latest
-    if: contains(github.event.pull_request.labels.*.name, 'sanity')
-    steps:
-      - uses: actions/checkout@v4
-      - uses: amondnet/vercel-action@v25
-        with:
-          vercel-version: 32.6.1
-          github-comment: |
-            <table>
-              <tr>
-                <td><strong>Name</strong></td>
-                <td>Sanity Studio</td>
-              </tr>
-              <tr>
-                <td><strong>Preview</strong></td>
-                <td><a href='{{deploymentUrl}}'>Visit Preview</a></td>
-              </tr>
-              <tr>
-                <td><strong>Commit</strong></td>
-                <td>{{deploymentCommit}}</td>
-              </tr>
-            </table>
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          vercel-token: ${{ secrets.VERCEL_TOKEN }}
-          vercel-org-id: ${{ vars.VERCEL_ORG_ID}}
-          vercel-project-id: ${{ vars.VERCEL_PROJECT_ID_STUDIO}}
+          vercel-org-id: ${{ vars.VERCEL_ORG_ID }}
+          vercel-project-id: ${{ matrix.VERCEL_PROJECT_ID }}

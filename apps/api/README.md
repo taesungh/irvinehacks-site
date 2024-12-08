@@ -32,3 +32,4 @@ For staging, the following environment variables should also bet set:
 For local, the following environment variables should also be set:
 
 - `DEPLOYMENT=local`
+
